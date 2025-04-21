@@ -14,13 +14,9 @@ Amount: search for $usd within dispute keyword
 Reason: return a reason for that chargeback/dispute/failure
 legitimacy: chargback companies proof of legitimacy (IP login, proof of purchase/service used, etc)
 '''
-REASON_KEYWORDS = ['dispute']
 nlp = spacy.load("en_core_web_sm")
 
-def search_by_pattern(text,patterns, fn=lambda x:set()):
-    # Load a SpaCy language model
-    nlp = spacy.load("en_core_web_sm")
-    
+def search_by_pattern(text,patterns, fn=lambda x:set()):    
     # Initialize the matcher
     matcher = Matcher(nlp.vocab)
     
@@ -32,12 +28,12 @@ def search_by_pattern(text,patterns, fn=lambda x:set()):
     
     # Search for the pattern in the text
     matches = matcher(doc)
-    retval = set()
-    for match_id, start, end in matches:
+    matched_results = set()
+    for _, start, end in matches:
         matched_span = doc[start:end]
-        retval = retval | fn(matched_span) # apply follow up pattern match function
+        matched_results |= fn(matched_span) # apply follow up pattern match function
         
-    return retval if retval else None
+    return list(matched_results) if matched_results else None
 
 
 # follow up pattern matching methods ========================
@@ -56,17 +52,24 @@ def reason_fn(matched_span):
 
 def parse_pdf(file):
     print(f"opening {file}")
-    with pdfplumber.open(file) as pdf:
-        text = ""
-        for page in pdf.pages:
-            text +=  " " + page.extract_text() or ""
+    try:
+        with pdfplumber.open(file) as pdf:
+            text = ""
+            for page in pdf.pages:
+                text +=  " " + page.extract_text() or ""
+    except Exception as e:
+        print("Error: Something wen wrong reading the file.")
+        return {}
+    text = text.replace("\n", " ")
+    
+    results = {}
 
     doc = nlp(text)
     user_info = Counter()
     credit_card = []
     amount = -1
     reason = None
-    
+
     # pull basic customer information from doc
     for ent in doc.ents:
         print(f"DEBUG: Entity found - Text: {ent.text}, Label: {ent.label_}")
@@ -78,32 +81,34 @@ def parse_pdf(file):
                 print("updating amount")
                 print(re.sub(r'\D+$', '', ent.text))
                 amount = max(amount, float(re.sub(r'\D+$', '', ent.text)))
-    if amount is None and "$" in text:
+
+    if amount is None and "$" in text: # use the backup search for amount
         amount = search_amount(text)
         print("backup amount method used")
     
-    # parse more detailed results
-    results = {}
-
     results['user_info'] = user_info.most_common(1)[0][0]
     results['amount'] = amount
+    # parse more detailed results
+
     results['credit_card'] = list(search_by_pattern(text,[[
             {"LOWER": "ending"}, 
             {"LOWER": "in"}, 
             {"IS_DIGIT": True, "LENGTH": 4}
         ]],cc_fn))[0]
     results['reason'] = search_by_pattern(text,[
-        [{"LOWER": "because"}],  # Look for explicit reasons
-        [{"LOWER": "reason"}, {"LOWER": "for"}],  # "reason for"
-        [{"LOWER": "proof"}, {"LOWER": "of"}],  # "proof of"
-        [{"LOWER": "receipt"}],  # Receipt mentions
-        [{"LOWER": "evidence"}],  # Evidence mentions
-        [{"LOWER": "transaction"}],  # Transaction mentions
-        [{"LOWER": "used"}, {"LOWER": "for"}],  # "used for"
-        [{"LOWER": "access"}],  # "used for"
-        [{"LOWER": "deliver"}],
-        [{"LOWER": "resolve"}]  # resolution mentions
-    ],reason_fn)
+            [{"LOWER": "because"}],  # Look for explicit reasons
+            [{"LOWER": "reason"}, {"LOWER": "for"}],  # "reason for"
+            [{"LOWER": "proof"}, {"LOWER": "of"}],  # "proof of"
+            [{"LOWER": "transaction"}],  # Transaction mentions
+
+            [{"LOWER": "receipt"}],  # Receipt mentions
+            [{"LOWER": "evidence"}],  # Evidence mentions
+            [{"LOWER": "used"}, {"LOWER": "for"}],  # "used for"
+            [{"LOWER": "access"}],  # "used for"
+            [{"LOWER": "deliver"}]
+        ],reason_fn)
+    results['resolve'] = search_by_pattern(text,[        [{"LOWER": "resolve"}]  # resolution mentions
+        ],reason_fn)
     print(results)
     return results
     

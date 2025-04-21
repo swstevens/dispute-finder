@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Example</title>
+    <script>
+        // Function to handle the file upload and display the response
+        async function uploadFile() {
+            const formData = new FormData();
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please select a file to upload.");
+                return;
+            }
+
+            formData.append('file', file);
+
+            try {
+                // Make the POST request to the endpoint (replace with your endpoint URL)
+                const response = await fetch('http://127.0.0.1:8000/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+                console.log(response);
+                if (!response.ok) {
+                    throw new Error("File upload failed");
+                }
+
+                // Parse the JSON response
+                const data = await response.json();
+                // Display the information returned in the response
+                document.getElementById('response').innerHTML = `
+                    <h3>Response Data:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                alert("An error occurred during file upload.");
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>File Upload</h1>
+    
+    <label for="fileInput">Choose a file to upload:</label>
+    <input type="file" id="fileInput" name="file" accept="*/*">
+    
+    <br><br>
+    <button onclick="uploadFile()">Upload File</button>
+
+    <div id="response">
+        <!-- The server response will be displayed here -->
+    </div>
+</body>
+</html>
