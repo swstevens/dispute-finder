@@ -51,7 +51,6 @@ def reason_fn(matched_span):
 # ===========================================================
 
 def parse_pdf(file):
-    print(f"opening {file}")
     try:
         with pdfplumber.open(file) as pdf:
             text = ""
@@ -61,14 +60,12 @@ def parse_pdf(file):
         print("Error: Something wen wrong reading the file.")
         return {}
     text = text.replace("\n", " ")
-    
+
     results = {}
 
     doc = nlp(text)
     user_info = Counter()
-    credit_card = []
     amount = -1
-    reason = None
 
     # pull basic customer information from doc
     for ent in doc.ents:
@@ -88,6 +85,7 @@ def parse_pdf(file):
     
     results['user_info'] = user_info.most_common(1)[0][0]
     results['amount'] = amount
+    
     # parse more detailed results
 
     results['credit_card'] = list(search_by_pattern(text,[[
@@ -109,7 +107,6 @@ def parse_pdf(file):
         ],reason_fn)
     results['resolve'] = search_by_pattern(text,[        [{"LOWER": "resolve"}]  # resolution mentions
         ],reason_fn)
-    print(results)
     return results
     
 # BACKUP FUNCTIONS ===============================
