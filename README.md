@@ -25,7 +25,7 @@ The main method for the module. It has a 4 main parts. Parsing the pdf into raw 
 
 #### search_by_pattern
 
-I want to also go over the `search_by_pattern` function, which takes in the raw text, a search pattern, and a sub-helper function for further finetuning of the response. Using the search pattern with spaCy, it finds the matches in the text. Then, using the sub-helper function, further cleans the matches into either single words, phrases, or full sentences. This was used with a variety of common phrases as patterns for a few types of common chargeback representment types: identitty verification (in cases of fraud, etc), delivery confirmation (to confirm that services were rendered or received), and payment verification (to confirm the payment event). These three events serve as an example that can be further honed for more specific categories.
+I want to also go over the `search_by_pattern` function, which takes in the raw text, a search pattern, and a sub-helper function for further finetuning of the response. Using the search pattern with spaCy, it finds the matches in the text. Then, using the sub-helper function, further cleans the matches into either single words, phrases, or full sentences. This was used with a variety of common phrases as patterns for a few types of common chargeback representment types: identitty verification (in cases of fraud, etc), delivery confirmation (to confirm that services were rendered or received), and payment verification (to confirm the payment event). These three events serve as an example that can be further honed for more specific categories. Ideally, combining the label searching and phrase matching would provide more fine tuned results.
 ## API Reference
 
 #### Get 

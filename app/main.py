@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 from io import BytesIO
-import app.plumber as plumber
+from app.parser import PDFParser
 
 
 app = FastAPI()
@@ -43,5 +43,6 @@ async def upload_file(file: UploadFile = File(...)):
 
     # Convert the file content into a BytesIO object to be used by pdfplumber
     pdf_file = BytesIO(file_content)
+    plumber = PDFParser()
     print(plumber.parse_pdf(pdf_file))
     return JSONResponse(content=plumber.parse_pdf(pdf_file))
