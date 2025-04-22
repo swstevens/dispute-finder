@@ -64,6 +64,7 @@ def reason_fn(matched_span):
 
 
 def parse_pdf(file):
+    # read from pdf and convert to raw text
     try:
         with pdfplumber.open(file) as pdf:
             text = ""
@@ -74,6 +75,7 @@ def parse_pdf(file):
         return {}
     text = text.replace("\n", " ")
 
+    # set up variables
     results = {}
     results['user_info'] = {}
 
@@ -99,7 +101,7 @@ def parse_pdf(file):
         print("backup amount method used")
 
     results['user_info']['name'] = user_info.most_common(1)[0][0]
-    results['amount'] = amount
+    results ['amount'] = amount
 
     # parse more detailed results
 
@@ -109,7 +111,7 @@ def parse_pdf(file):
         {"IS_DIGIT": True, "LENGTH": 4}
     ]], cc_fn))[0]
 
-    
+
     # Find legitimacy proofs and categorize them
     legitimacy_evidence = {
         "identity_verification": [],
@@ -132,7 +134,6 @@ def parse_pdf(file):
         legitimacy_evidence["identity_verification"] = id_verification
     
     # Delivery confirmation evidence
-# Delivery confirmation evidence
     delivery_confirmation = search_by_pattern(text, [
         [{"LOWER": "deliver"}],
         [{"LOWER": "delivered"}, {"LOWER": "to"}],
@@ -159,6 +160,7 @@ def parse_pdf(file):
     ], reason_fn)
     if payment_verification:
         legitimacy_evidence["payment_verification"] = payment_verification
+    
     results['legitimacy_evidence'] = legitimacy_evidence
     # results['resolve'] = search_by_pattern(text, [[{"LOWER": "resolve"}]  # resolution mentions
     #                                               ], reason_fn)
