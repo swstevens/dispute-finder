@@ -1,21 +1,39 @@
 from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import os
-import app.plumber as plumber
 from io import BytesIO
+import app.plumber as plumber
+
 
 app = FastAPI()
-UPLOAD_DIRECTORY = "app/uploads"
-os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
+
+# set up html files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins, you can specify specific origins here like ["http://localhost:3000"]
+    # Allows all origins, you can specify specific origins here like ["http://localhost:3000"]
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allows all headers
 )
+
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    # Path to your index.html file
+    index_file_path = os.path.join("static", "index.html")
+
+    # Read the index.html file and return as a response
+    with open(index_file_path, "r") as file:
+        content = file.read()
+
+    return HTMLResponse(content=content)
+
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
