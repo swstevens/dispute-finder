@@ -17,7 +17,11 @@ Legitimacy Proofs: Search for common phrases associated with ID, payment, and de
 class PDFParser:
     def __init__(self, nlp_model="en_core_web_sm"):
         # Load the SpaCy NLP model
-        self.nlp = spacy.load(nlp_model)
+        try:
+            self.nlp = spacy.load(nlp_model)
+        except Exception as e:
+            logging.error(f"Failed to load NLP model: {e}")
+            raise RuntimeError("Could not initialize NLP model.")
 
     def search_by_pattern(self, text, patterns, fn=lambda x: {x.text}):
         # Initialize the matcher
@@ -95,8 +99,6 @@ class PDFParser:
             elif ent.label_ == 'MONEY':
                 start_pos = ent.start_char
                 if start_pos > 0 and text[start_pos - 1] == "$":
-                    print("Updating amount")
-                    print(re.sub(r'\D+$', '', ent.text))
                     amount = max(amount, float(re.sub(r'\D+$', '', ent.text)))
 
         if amount is None and "$" in text:  # Use the backup search for amount if None

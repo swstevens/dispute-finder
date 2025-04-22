@@ -1,7 +1,8 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import logging
 import os
 from io import BytesIO
 from app.parser import PDFParser
@@ -29,20 +30,36 @@ async def serve_index():
     index_file_path = os.path.join("static", "index.html")
 
     # Read the index.html file and return as a response
-    with open(index_file_path, "r") as file:
-        content = file.read()
-
-    return HTMLResponse(content=content)
+    try:
+        with open(index_file_path, "r") as file:
+            content = file.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        logging.error("Index file not found.")
+        raise HTTPException(status_code=404, detail="Index file not found.")
 
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    # Process the file (e.g., save it, parse it, etc.)
-    # For example, just return the file name and content type in the response
-    file_content = await file.read()
+    if file.content_type != "application/pdf":
+        logging.warning("Uploaded file is not a PDF.")
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
 
-    # Convert the file content into a BytesIO object to be used by pdfplumber
-    pdf_file = BytesIO(file_content)
-    plumber = PDFParser()
-    print(plumber.parse_pdf(pdf_file))
-    return JSONResponse(content=plumber.parse_pdf(pdf_file))
+    try:
+        file_content = await file.read()
+        pdf_file = BytesIO(file_content)
+
+        parser = PDFParser()
+        result = parser.parse_pdf(pdf_file)
+
+        if not result:
+            raise ValueError("Failed to parse PDF content.")
+
+        return JSONResponse(content=result)
+    except ValueError as ve:
+        logging.error(f"Parsing error: {ve}")
+        raise HTTPException(status_code=422, detail="Invalid PDF content.")
+    except Exception as e:
+        logging.exception("Unexpected error occurred.")
+        raise HTTPException(status_code=500, detail="Internal server error.")
+
